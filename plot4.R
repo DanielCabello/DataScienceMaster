@@ -22,7 +22,11 @@ png(filename = "plot4.png", width = 480, height = 480 )
   # Graph 1
     
     # Getting the variables 
+<<<<<<< HEAD
     x <- powerSelect$dateTime
+=======
+    x <- powerSelect[,1]
+>>>>>>> e7aeb92c9c67c3a780d3d8afd34e9659f81c3e5f
     y <- powerSelect$Global_active_power
 
     # Ploting the grahp
@@ -42,7 +46,11 @@ png(filename = "plot4.png", width = 480, height = 480 )
     lines(x, sub2, col = "red")
     lines(x, sub3, col = "blue")
     legend("topright", legend = c("Sub_metering_1","Sub_metering_2","Sub_metering_3"),
+<<<<<<< HEAD
            lty = c(1,1,1), col = c("black", "red", "blue"), bty = "n")
+=======
+           lty = c(1,1,1), col = c("black", "red", "blue"))
+>>>>>>> e7aeb92c9c67c3a780d3d8afd34e9659f81c3e5f
 
 
   # Graph 3
@@ -60,9 +68,14 @@ png(filename = "plot4.png", width = 480, height = 480 )
     Grp <- powerSelect$Global_reactive_power
 
     # Plotting the graph
+<<<<<<< HEAD
     plot(x, Grp, xlab = "datetime", ylab = "Global_reactive_power", type = "n") 
     lines(x, Grp, col ="dimgrey")
     points(x, Grp, pch = 46, col = "black")
+=======
+    plot(x, Grp, xlab = "datetime", ylab = "Global_reactive_power", type = "l") 
+    
+>>>>>>> e7aeb92c9c67c3a780d3d8afd34e9659f81c3e5f
     par(mfrow = c(1,1))
 
 # Close the png file device
