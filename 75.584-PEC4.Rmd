@@ -1,0 +1,503 @@
+---
+title: 'Minería de datos: PEC4 - Modelos de Agregación'
+author: "Autor: Nombre estudiante"
+date: "Noviembre 2018"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T)
+```
+
+******
+# Introducción
+******
+## Presentación
+Esta prueba de evaluación continua cubre los Módulos 5 y 8 (Evaluación de modelos) del programa de la asignatura  
+
+## Competencias
+Las competencias que se trabajan en esta prueba son:  
+
+* Uso y aplicación de las TIC en el ámbito académico y profesional.
+* Capacidad para innovar y generar nuevas ideas.
+* Capacidad para evaluar soluciones tecnológicas y elaborar propuestas de proyectos teniendo en cuenta los recursos, las alternativas disponibles y las condiciones de mercado.
+* Conocer las tecnologías de comunicaciones actuales y emergentes así como saberlas aplicar convenientemente para diseñar y desarrollar soluciones basadas en sistemas y tecnologías de la información.
+* Aplicación de las técnicas específicas de ingeniería del software en las diferentes etapas del ciclo de vida de un proyecto.
+* Capacidad para aplicar las técnicas específicas de tratamiento, almacenamiento y administración de datos.
+* Capacidad para proponer y evaluar diferentes alternativas tecnológicas para resolver un problema concreto.
+
+## Objetivos
+La correcta asimilación del Módulo 5: En esta PEC trabajaremos la generación e interpretación de un modelo de agregación basado en particiones de datos con la herramienta de prácticas. No perderemos de vista las fases de preparación de los datos y extracción inicial de conocimiento.
+
+## Descripción de la PEC a realizar
+La prueba está estructurada en un total de 1 ejercicio teórico y 2 ejercicios teórico / práctico. Estos ejercicios están todos relacionados, es necesario hacerlos todos para obtener una valoración satisfactoria.
+
+## Recursos Básicos
+**Material docente proporcionado por la UOC.** 
+
+Módulo 5 y 8 del material didáctico.
+
+**Complementarios** 
+
+* Fichero iris.csv
+
+## Criterios de valoración
+
+**Ejercicios teóricos** 
+
+Todos los ejercicios deben ser presentados de forma razonada y clara, especificando todos y cada uno de los pasos que se hayan llevado a cabo para su resolución. No se aceptará ninguna respuesta que no esté claramente justificada.
+
+**Ejercicios prácticos** 
+
+Para todas las PEC es necesario documentar en cada apartado del ejercicio práctico qué se ha hecho y cómo se ha hecho.
+
+## Formato y fecha de entega
+El formato de entrega es: usernameestudiant-PECn.html/doc/docx/odt/pdf  
+Fecha de Entrega: 21/11/2018  
+Se debe entregar la PEC en el buzón de entregas del aula  
+
+## Nota: Propiedad intelectual 
+
+> A menudo es inevitable, al producir una obra multimedia, hacer uso de recursos creados por terceras personas. Es por lo tanto comprensible hacerlo en el marco de una práctica de los estudios de Informática, Multimedia y Telecomunicación de la UOC, siempre y cuando esto se documente claramente y no suponga plagio en la práctica. 
+
+> Por lo tanto, al presentar una práctica que haga uso de recursos ajenos, se debe presentar junto con ella un documento en qué se detallen todos ellos, especificando el nombre de cada recurso, su autor, el lugar dónde se obtuvo y su estatus legal: si la obra está protegida por el copyright o se acoge a alguna otra licencia de uso (Creative Commons, licencia GNU, GPL ...). 
+El estudiante deberá asegurarse de que la licencia  no impide específicamente su uso en el marco de la práctica. En caso de no encontrar la información correspondiente tendrá que asumir que la obra está protegida por copyright. 
+
+> Deberéis, además, adjuntar los ficheros originales cuando las obras utilizadas sean digitales, y su código fuente si corresponde.  
+
+
+******
+# Ejemplo 1 
+******
+En este ejemplo vamos a generar un conjunto de muestras aleatorias para posteriormente usar el algortimo kmeans para agruparlas. Se crearán las muestras alrededor de dos puntos concretos. Por lo tanto, lo lógico será agrupar en dos clusters. Puesto que a priori, en un problem real, no se conoce cual es el número correcto de clusters k, vamos a probar primero con dos clusters (el valor óptimo) y posteriormente con 4 y 8 clusters. Para evaluar la calidad de cada proceso de agrupación vamos a usar la silueta media. La silueta de cada muestra evalúa como de bien o mal está clasificada la muestra en el cluster al que ha sido asignada. Para ello se usa una fórmula que tiene en cuenta la distancia a las muestras de su cluster y la distancia a las muestras del cluster vecino más cercano. 
+
+A la hora de probar el código que se muestra, es importante tener en cuenta que las muestras se generan de forma aleatoria y también que el algortimo kmeans tiene una inicialización aleatoria. Por lo tanto, en cada ejecución se obtendrá unos resultados ligeramente diferentes.
+
+Lo primero que hacemos es cargar la libreria cluster que contiene las funciones que se necesitan
+
+```{r message= FALSE, warning=FALSE}
+library(cluster)
+```
+
+Generamos las muestras de forma aleatoria tomando como centro los puntos [0,0] y [5,5]. 
+
+```{r message= FALSE, warning=FALSE}
+n       <- 150 # numero de muestras
+p       <- 2   # dimension
+
+sigma <- 1          # varianza de la distribucion
+mean1 <- 0          # centro del primer grupo
+mean2 <- 5          # centro del segundo grupo
+n1    <- round(n/2) # numero de muestras del primer grupo
+n2    <- round(n/2) # numero de muestras del segundo grupo
+
+x1 <- matrix(rnorm(n1*p,mean=mean1,sd=sigma),n1,p)
+x2 <- matrix(rnorm(n2*p,mean=mean2,sd=sigma),n2,p)
+```
+
+Juntamos todas las muestras generadas y las mostramos en una gráfica
+```{r message= FALSE, warning=FALSE}
+x  <- rbind(x1,x2)
+plot (x)
+```
+
+Como se puede comprobar las muestras están claramente separadas en dos grupos. Si se quiere complicar el problema se puede modificar los puntos centrales (mean1 y mean2) haciendo que estén más próximos y/o ampliar la varianza (sigma) para que las muestras estén más dispersas.
+
+A continuación vamos a aplicar el algoritmo kmeans con 2, 4 y 8 clusters
+```{r message= FALSE, warning=FALSE}
+fit2       <- kmeans(x, 2)
+y_cluster2 <- fit2$cluster
+
+fit4       <- kmeans(x, 4)
+y_cluster4 <- fit4$cluster
+
+fit8       <- kmeans(x, 8)
+y_cluster8 <- fit8$cluster
+```
+
+Las variables y_cluster2, y_cluster4 e y_cluster8 contienen para cada muestra el identificador del cluster a las que han sido asignadas. Por ejemplo, en el caso de los k=2 las muestras se han asignado al cluster 1 o al 2
+
+```{r message= FALSE, warning=FALSE}
+y_cluster2
+```
+
+Para ver visualmente los clusters podemos usar la función clusplot. Vemos la agrupación con 2 clusters
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit2$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+con 4
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit4$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+y con 8
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit8$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+También podemos visualizar el resultado del proceso de agrupamiento con el siguiente código para el caso de 2 clusters
+```{r message= FALSE, warning=FALSE}
+plot(x[y_cluster2==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster2==2,],col='red')
+```
+
+para 4
+```{r message= FALSE, warning=FALSE}
+
+plot(x[y_cluster4==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster4==2,],col='red')
+points(x[y_cluster4==3,],col='green')
+points(x[y_cluster4==4,],col='black')
+```
+
+y para 8
+```{r message= FALSE, warning=FALSE}
+plot(x[y_cluster8==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster8==2,],col='red')
+points(x[y_cluster8==3,],col='green')
+points(x[y_cluster8==4,],col='black')
+points(x[y_cluster8==5,],col='yellow')
+points(x[y_cluster8==6,],col='purple')
+points(x[y_cluster8==7,],col='cyan')
+points(x[y_cluster8==8,],col='orange')
+```
+
+Ahora vamos a evaluar la calidad del proceso de agregación. Para ello usaremos la función silhouette que calcula la silueta de cada muestra
+
+```{r message= FALSE, warning=FALSE}
+d  <- daisy(x) 
+sk2 <- silhouette(y_cluster2, d)
+sk4 <- silhouette(y_cluster4, d)
+sk8 <- silhouette(y_cluster8, d)
+```
+
+La función silhouette devuelve para cada muestra, el cluster donde ha sido asignado, el cluster vecino y el valor de la silueta. Por lo tanto, calculando la media de la tercera columna podemos obtener una estimación de la calidad del agrupamiento
+
+```{r message= FALSE, warning=FALSE}
+mean(sk2[,3])
+mean(sk4[,3])
+mean(sk8[,3])
+```
+
+Como se puede comprobar, agrupar con dos cluster es mejor que en 4 o en 8, lo cual es lógico teniendo en cuenta como se han generado los datos.
+
+******
+# Ejemplo 2 
+******
+
+A continuación vamos a ver otro ejemplo de como se usan los modelos de agregación. Para ello usaremos el fichero iris.csv. Esta base de datos se encuentra descrita en https://archive.ics.uci.edu/ml/datasets/iris. Como se puede comprobar, esta base de datos está pensada para problemas de clasificación supervisada que pretende clasificar cada tipo de flor en uno de las tres clases existentes. Como en este ejemplo vamos a usar un método no supervisado, transformaremos el problema supervisado original en uno no supervisado. Para consegirlo no usaremos la columna class, que es la variable que se quiere predecir. Por lo tanto, intentaremos encontrar agrupaciones usando únicamente los cuatro atributos que caracterizan a cada flor.
+ 
+Cargamos  los datos y nos quedamos únicamente con las cuatro columnas que definen a cada flor
+```{r message= FALSE, warning=FALSE}
+iris_data<-read.csv("./iris.csv", header=T, sep=",")
+attach(iris_data)
+x <- iris_data[,1:4]
+```
+
+Como a priori no conocemos el número optimo de clusters, probamos con varios valores
+```{r message= FALSE, warning=FALSE}
+d <- daisy(x) 
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  y_cluster     <- fit$cluster
+  sk            <- silhouette(y_cluster, d)
+  resultados[i] <- mean(sk[,3])
+}
+```
+
+
+Mostramos en un gráfica los valores de las siluetas media de cada prueba para comprobar que número de clusters es el mejor
+```{r message= FALSE, warning=FALSE}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Numbero de clusters",ylab="Silueta")
+```
+
+Aunque el valor a priori esperado es k=3  puesto que el conjunto original tiene 3 clases, el mejor valor que se obtiene es k=2.
+
+Otro forma de evaluar cual es el mejor número de clusters es considerar el mejor modelo aquel que ofrece la menor suma de los cuadrados de las distancias de los puntos de cada grupo con respecto a su centro (withinss), con la mayor separación entre centros de grupos (betweenss). Como se puede comprobar es una idea conceptualmente similar a la silueta. Una manera común de hacer la selección del número de clusters consiste en aplicar el método “elbow” (codo), que no es más que la selección del número de clusters en base a la inspección de la gráfica que se obtiene al iterar con el mismo conjunto de datos para distintos valores del número de clusters. Se seleccionará el valor que se encuentra en el "codo" de la curva
+
+```{r message= FALSE, warning=FALSE}
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  resultados[i] <- fit$tot.withinss
+}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Numbero de clusters",ylab="tot.tot.withinss")
+```
+
+En este caso el número óptimo de clusters son 4  que es cuando la curva comienza a estabilizarse.
+
+También se puede usar la función kmeansruns del paquete fpc que ejecuta el algoritmo kmeans con un conjunto de valores y selecciona el valor del número de clusters que mejor funcione de acuerdo a dos criterios la silueta media ("asw") y Calinski-Harabasz ("ch").
+
+```{r message= FALSE, warning=FALSE}
+library(fpc)
+fit_ch  <- kmeansruns(x, krange = 1:10, criterion = "ch") 
+fit_asw <- kmeansruns(x, krange = 1:10, criterion = "asw") 
+```
+
+Podemos comprobar el valor con el que se ha obtenido el mejor resultado y también mostrar el resultado obtenido para todos los valores de k usando ambos criterios
+
+```{r message= FALSE, warning=FALSE}
+fit_ch$bestk
+fit_asw$bestk
+
+plot(1:10,fit_ch$crit,type="o",col="blue",pch=0,xlab="Numero de clusters",ylab="Criterio Calinski-Harabasz")
+plot(1:10,fit_asw$crit,type="o",col="blue",pch=0,xlab="Numero de clusters",ylab="Criterio silueta media")
+
+```
+
+Los resultados son muy parecidos a los que hemos obtenido anteriormente. Con el criterio de la silueta media se obtienen dos clusters y con el Calinski-Harabasz se obtienen 3.
+
+Como se ha comprobado, conocer el número óptimo de clusters no es un problema fácil. Tampoco lo es la evaluación de los modelos de agregación. 
+
+******
+# Ejercicios
+******
+
+## Ejercicio 1:  
+Teniendo en cuenta el proyecto que has definido en la PEC1,  ¿creéis que los métodos de agregación son el método más adecuado para conseguir alguno de los objetivos que os habéis propuesto? Justifica adecuadamente la respuesta.
+
+Si la respuesta es no, proponer un nuevo proyecto donde si sea adecuado usar modelos de agregación.
+
+### Respuesta 1:
+El proyecto propuesto en la PEC1 tenía como objetivo incrementar la eficiencia en el uso del agua de riego al identificar las condiciones en tiempo real en que el riego es necesario para atender a las necesidades hídricas de la planta en ese momento, en función de una serie de variables físicas y económicas dentro de un sistema de riego por goteo en el que se ha implantado una serie de sensores que permiten un control del columen de agua utilizado. El método de agregación se incluiría como parte del análisis exploratorio del proyecto permitendo explorar las condiciones de contorno de las variables explicativas que definen categorías de necesidades hídricas de la planta en un momento dado
+
+## Ejercicio 2:  
+Tomando como punto de partida los ejemplos mostrados, realizar un estudio similar con otro conjunto de datos. Pueden ser datos reales de vuestro ámbito laboral o de algún repositorio de datos de Internet. Mirad por ejemplo: http://www.ics.uci.edu/~mlearn/MLSummary.html.
+
+A la hora de elegir la base de datos ten en cuenta que sea apropiada para problemas no supervisados y que los atributos sean también apropiados para su uso con el algoritmo kmeans.
+
+No hay que olvidarse de la fase de preparación y análisis de datos.
+
+### Respuesta 2:
+
+**OBJETIVO Y CONJUNTO DE DATOS**
+
+Faults in a urban waste water treatment plant
+
+**Objetivo**
+The objective is to classify the operational
+  state of the plant in order to predict faults through the state variables of the plant at each of the stages of the treatment process. 
+  This domain has been stated as an ill-structured domain.
+
+**Conjunto de datos**
+Water Treatment Plant Data Set 
+
+**Repositorio**
+Repositorio de Machine Learning de la UCI alojada en la siguiente dirección:
+https://archive.ics.uci.edu/ml/datasets/water+treatment+plant
+
+**Información del Conjunto de datos**
+
+ Este conjunto de datos procede de medidas diarias recogidas en sensores en una estación de depuración de aguas residuales (EDAR). La planta se localiza en Manresa, una ciudad de 66,000 habitantes en el momento del estudio (1993), cerca de Barcelona (Cataluña). La planta trata un volumen de agua de 35,000 m3/día, unos 100.000 habitantes equivalentes, principalmente aguas residuales domésticas aunque también recibe aguas residuales de industrias ubicadas dentro de la ciudad. Un conjunto de 38 variables, 7 indicadores de calidad, son medidas diariamente en varios lugares de la planta (a la entrada de la planta, despues del pretratamiento a la entrada del tratamiento primario, a la entrada del tratamiento secundario o biológico y a la salida de la planta), nueve de los cuales son porcentajes de funcionamiento de la planta. Los indicadores de calidad medidos son:
+ 
+ - zinc (solo a la entrada de la planta)
+ - pH del agua
+ - demanda bioquímica de oxígeno (DBO)
+ - demanda química de oxígeno (DQO)
+ - sólidos en suspensión (SS)
+ - sólidos supendidios volátiles (SSV)
+ - sedimentos (SED)
+ - conductividad del agua (COND)
+ 
+**Artículos relevantes**
+- J. De Gracia. ``Avaluacio de tecniques de classificacio per a la gestio de Bioprocessos: Aplicacio a un reactor de fangs activats'' Master Thesis. Dept. de Quimica. Unitat d'Enginyeria Quimica. Universitat Autonoma de Barcelona. Bellaterra (Barcelona). 1993. 
+
+- J. Bejar, U. Cort\'es and M. Poch. "LINNEO+: A Classification Methodology for Ill-structured Domains''. Research report RT-93-10-R. Dept. Llenguatges i Sistemes Informatics. Barcelona. 1993. 
+[Web Link] 
+
+- Ll. Belanche, U. Cortes and M. S\`anchez. "A knowledge-based system for the diagnosis of waste-water treatment plant''. Proceedings of the 5th international conference of industrial and engineering applications of AI and Expert Systems IEA/AIE-92. Ed Springer-Verlag. Paderborn, Germany, June 92. 
+[Web Link]
+
+
+
+
+
+**Variables**
+nº de atributos: 38
+Nº de observaciones: 527
+Hay valores perdidos (información desconocida)
+Todas las variables son numéricas y continuas
+
+ 1	Date	Fecha
+ 2	Q-E	(input flow to plant)
+ 3	ZN-E	(input Zinc to plant)
+ 4	PH-E	(input pH to plant)
+ 5	DBO-E	(input Biological demand of oxygen to plant)
+ 6	DQO-E	(input chemical demand of oxygen to plant)
+ 7	SS-E	(input suspended solids to plant)
+ 8	SSV-E	(input volatile supended solids to plant)
+ 9	SED-E	(input sediments to plant)
+10	COND-E	(input conductivity to plant)
+11	PH-P	(input pH to primary settler)
+12	DBO-P	(input Biological demand of oxygen to primary settler)
+13	SS-P	(input suspended solids to primary settler)
+14	SSV-P	(input volatile supended solids to primary settler)
+15	SED-P	(input sediments to primary settler)
+16	COND-P	(input conductivity to primary settler)
+17	PH-D	(input pH to secondary settler)
+18	DBO-D	(input Biological demand of oxygen to secondary settler)
+19	DQO-D	(input chemical demand of oxygen to secondary settler)
+20	SS-D	(input suspended solids to secondary settler)
+21	SSV-D	(input volatile supended solids to secondary settler)
+22	SED-D	(input sediments to secondary settler)
+23	COND-D	(input conductivity to secondary settler)
+24	PH-S	(output pH)
+25	DBO-S	(output Biological demand of oxygen)
+26	DQO-S	(output chemical demand of oxygen)
+27	SS-S	(output suspended solids)
+28	SSV-S	(output volatile supended solids)
+29	SED-S	(output sediments)
+30	COND-S	(output conductivity)
+31	RD-DBO-P	(performance input Biological demand of oxygen in primary settler)
+32	RD-SS-P	(performance input suspended solids to primary settler)
+33	RD-SED-P	(performance input sediments to primary settler)
+34	RD-DBO-S	(performance input Biological demand of oxygen to secondary settler)
+35	RD-DQO-S	(performance input chemical demand of oxygen to secondary settler)
+36	RD-DBO-G	(global performance input Biological demand of oxygen)
+37	RD-DQO-G	(global performance input chemical demand of oxygen)
+38	RD-SS-G	(global performance input suspended solids)
+39	RD-SED-G	(global performance input sediments)
+
+  
+  
+**CARGA DE DATOS Y SELECCIÓN DE VARIABLES**
+
+```{r}
+# Se cargan el juegos de dato:
+dataWater <- read.csv("data/water-treatment.data", header = F)
+
+# Se le asigna nombres a las variables (columnas) del dataset
+names(dataWater) <- c('Date', 'Q-E',	'ZN-E',	'PH-E',	'DBO-E',	'DQO-E',	'SS-E',	'SSV-E',	'SED-E',	'COND-E',	'PH-P',	'DBO-P',	'SS-P',	'SSV-P',	'SED-P',	'COND-P',	'PH-D',	'DBO-D',	'DQO-D',	'SS-D',	'SSV-D',	'SED-D',	'COND-D',	'PH-S',	'DBO-S',	'DQO-S',	'SS-S',	'SSV-S',	'SED-S',	'COND-S',	'RD-DBO-P',	'RD-SS-P',	'RD-SED-P',	'RD-DBO-S',	'RD-DQO-S',	'RD-DBO-G',	'RD-DQO-G',	'RD-SS-G',	'RD-SED-G')
+
+str(dataWater)
+
+
+```
+
+**TRATAMIENTO DE LOS DATOS**
+
+```{r}
+# Los datos nulos designados como " ?" en el dataset se reemplazan por NA
+dataWater <- replace(dataWater, dataWater == "?", NA)
+
+# Miramos el nº de nulos que hay por atributo
+colSums(is.na(dataWater))
+
+# Eliminamos todas las filas que contienen algun valor nulo (NA) en los campos
+dataWater <- na.omit(dataWater)
+```
+
+
+**ANÁLISIS: METODO DE AGLOMERACIÓN **
+
+```{r}
+library(cluster)
+
+x <- dataWater[,36:39] 
+
+d <- daisy(x) 
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  y_cluster     <- fit$cluster
+  sk            <- silhouette(y_cluster, d)
+  resultados[i] <- mean(sk[,3])
+}
+
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Numero de clusters",ylab="Silueta")
+```
+Otro forma de evaluar cual es el mejor número de clusters es considerar el mejor modelo aquel que ofrece la menor suma de los cuadrados de las distancias de los puntos de cada grupo con respecto a su centro (withinss), con la mayor separación entre centros de grupos (betweenss). Como se puede comprobar es una idea conceptualmente similar a la silueta. Una manera común de hacer la selección del número de clusters consiste en aplicar el método “elbow” (codo), que no es más que la selección del número de clusters en base a la inspección de la gráfica que se obtiene al iterar con el mismo conjunto de datos para distintos valores del número de clusters. Se seleccionará el valor que se encuentra en el “codo” de la curva
+
+```{r}
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  resultados[i] <- fit$tot.withinss
+}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Numero de clusters",ylab="tot.tot.withinss")
+```
+
+También se puede usar la función kmeansruns del paquete fpc que ejecuta el algoritmo kmeans con un conjunto de valores y selecciona el valor del número de clusters que mejor funcione de acuerdo a dos criterios la silueta media (“asw”) y Calinski-Harabasz (“ch”).
+
+```{r}
+library(fpc)
+fit_ch  <- kmeansruns(x, krange = 1:10, criterion = "ch") 
+fit_asw <- kmeansruns(x, krange = 1:10, criterion = "asw") 
+
+fit_ch$bestk
+fit_asw$bestk
+
+plot(1:10,fit_ch$crit,type="o",col="blue",pch=0,xlab="Numero de clusters",ylab="Criterio Calinski-Harabasz")
+```
+
+
+
+```{r}
+
+
+result_k2 <- kmeans(dataWater[,36:39],2)
+clusplot(dataWater[,36:39], result_k2$cluster, color= T, shade = T, lines = 0, labels = 2)
+
+result_k4 <- kmeans(dataWater[,36:39],4)
+clusplot(dataWater[,36:39], result_k4$cluster, color= T, shade = T, lines = 0, labels = 2)
+
+result_k6 <- kmeans(dataWater[,36:39],6)
+clusplot(dataWater[,36:39], result_k6$cluster, color= T, shade = T, lines = 0, labels = 2)
+
+result_k8 <- kmeans(dataWater[,36:39],8)
+clusplot(dataWater[,36:39], result_k8$cluster, color= T, shade = T, lines = 0, labels = 2)
+
+result_k10 <- kmeans(dataWater[,36:39],10)
+clusplot(dataWater[,36:39], result_k10$cluster, color= T, shade = T, lines = 0, labels = 2)
+```
+
+
+## Ejercicio 3:  
+Buscar información sobre otros métodos de agregación diferentes al Kmeans. Partiendo del ejercicio anterior probar el funcionamiento de al menos 2 métodos diferentes y comparar los resultados obtenidos en ambos ejercicios.
+
+### Respuesta 3:
+> Escribe aquí la respuesta a la pregunta
+
+
+******
+# Rúbrica
+******
+
+## Ejercicio 1
+
+* 20%. Se explica de forma clara si el uso de métodos de agregación es adecuado para conseguir los objetivos propuestos en el caso planteado en las PEC1. Si no lo es, se propone un caso donde si lo es.
+
+## Ejercicio 2
+
+* 3%. Se selecciona una base de datos adecuada para el uso de kmeans.
+* 7%. Se explican los campos de la base de datos, preparación y análisis de datos
+* 10%. Se aplica el algoritmo de agrupamiento de forma correcta.
+* 10%. Se prueban con diferentes valores de k.
+* 5%. Se obtiene una medida de lo bueno que es el agrupamiento.
+* 10%. Se explican las conclusiones que se obtienen.
+* 5%. Se presenta el código y es fácilmente reproducible.
+
+## Ejercicio 3
+
+* 10%. Se prueba un algoritmo diferente al kmeans.
+* 10%. Se prueba otro algoritmo diferente al kmeans.
+* 10%. Se comparan los resultados del kmeans y los otros dos métodos probados en este ejercicio.
+
